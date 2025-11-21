@@ -17,6 +17,7 @@ public class PlayerLogic : MonoBehaviour
     [SerializeField] float gravity;
     [SerializeField] int maxEnergy;
     [SerializeField] int shootCost;
+    public BossController boss;
 
     // references set in inspector
     [SerializeField] GameObject sword;
@@ -163,6 +164,16 @@ public class PlayerLogic : MonoBehaviour
         Vector3 walkVelocity = moveVelocity;
         walkVelocity.y = 0;
         animator.SetFloat("speed", Mathf.Abs(walkVelocity.magnitude));
+       
+        
+        // Temp: press H to damahe boss
+        if (UnityEngine.InputSystem.Keyboard.current.hKey.wasPressedThisFrame)
+        {
+            if(boss != null)
+            {
+                boss.TakeDamage(10);
+            }
+        }
     }
 
     void Jump(InputAction.CallbackContext ctx)

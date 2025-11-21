@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,10 +11,12 @@ public class PlayerMovement : MonoBehaviour
     CharacterController controller;
     Vector3 moveVelocity;
 
+    public BossController boss;
+
     // Start is called before the first frame update
     void Start()
     {
-        
+
     }
 
     // Update is called once per frame
@@ -32,7 +34,17 @@ public class PlayerMovement : MonoBehaviour
         moveVelocity.y += gravity * Time.deltaTime;
 
         controller.Move((moveVelocity) * Time.deltaTime);
+
+        // ⭐ TEST DAMAGE INPUT
+        if (UnityEngine.InputSystem.Keyboard.current.hKey.wasPressedThisFrame)
+        {
+            if (boss != null)
+            {
+                boss.TakeDamage(10);
+            }
+        }
     }
+
 
     Vector3 GetCameraRelativeInput(Vector2 input)
     {
