@@ -3,6 +3,25 @@ using UnityEngine;
 public class BossDamageHitbox : MonoBehaviour
 {
     public int damageAmount = 10;
+    BoxCollider hitbox;
+
+    private void Awake()
+    {
+        hitbox = GetComponent<BoxCollider>();
+        hitbox.enabled = false; // Start disabled
+    }
+
+    public void EnableHitbox()
+    {
+        hitbox.enabled = true;
+        Debug.Log("Hitbox ENABLED");
+    }
+
+    public void DisableHitbox()
+    {
+        hitbox.enabled = false;
+        Debug.Log("Hitbox DISABLED");
+    }
 
     private void OnTriggerEnter(Collider other)
     {
@@ -12,7 +31,6 @@ public class BossDamageHitbox : MonoBehaviour
         {
             Debug.Log("Boss hit the player!");
 
-            // PlayerLogic already has a damage system
             Damage dmg = new Damage();
             dmg.amount = damageAmount;
             dmg.knockbackForce = 10;

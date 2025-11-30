@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class BossController : MonoBehaviour
@@ -13,6 +14,7 @@ public class BossController : MonoBehaviour
         Hurt,
         Dead
     }
+    public BossDamageHitbox bossHitbox;
 
     [Header("Stats")]
     public int maxHealth = 100;
@@ -124,8 +126,25 @@ public class BossController : MonoBehaviour
         if (cooldownTimer <= 0f)
         {
             Debug.Log("Boss Attacks!");
+
+            StartCoroutine(DoAttackTiming());
             cooldownTimer = attackCooldown;
         }
+    }
+
+    IEnumerator DoAttackTiming()
+    {
+        //1. Wind-up (optional)
+        yield return new WaitForSeconds(0.2f);
+
+        //2. Enable HItbox
+        bossHitbox.EnableHitbox();
+
+        //3. Active attack window
+        yield return new WaitForSeconds(0.3f);
+
+        //4.Disable Hitbox
+        bossHitbox.DisableHitbox();
     }
 
     public void TakeDamage(int amount)
