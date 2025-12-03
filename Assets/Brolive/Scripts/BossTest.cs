@@ -31,6 +31,9 @@ public class BossAI : MonoBehaviour
     float stateTimer = 0;
     int pathIndex = 0;
 
+    Vector3 targetVelocity;
+    float currentStateElapsed = 0;
+
     // ---------------------------
     // Setup
     // ---------------------------
@@ -67,7 +70,7 @@ public class BossAI : MonoBehaviour
                 break;
 
             case BossState.Dead:
-                HandleDead();
+                //HandleDead();
                 break;
         }
     }
@@ -143,34 +146,51 @@ public class BossAI : MonoBehaviour
         stateTimer = 0;
     }
 
-    void HandleMelee()
+    void EnterMelee()
+    {
+        //Debug.Log("Enter melee");
+        // animator.setTrigger("Melee");
+        var dirToPlayer = (player.transform.position - transform.position).normalized;
+        dirToPlayer.y = 0;
+        transform.forward = dirToPlayer;
+        targetVelocity = Vector3.zero;
+        //state = EnemyStates.melee;
+        currentStateElapsed = 0;
+
+        StartCoroutine(HandleMelee());
+    }
+
+    IEnumerator HandleMelee()
     {
         // Sword stays active briefly
         if (stateTimer >= 0.4f)
         {
+            meleeWeapon.SetActive(true);
+            meleeWeapon.GetComponent<Animator>().SetTrigger("swing");
+            yield return new WaitForSeconds(0.25f);
             meleeWeapon.SetActive(false);
-            state = BossState.Pursue;
-            stateTimer = 0;
         }
     }
 
-    // ---------------------------
-    // DEATH STATE
-    // ---------------------------
-    void HandleDead()
-    {
-        rb.linearVelocity = Vector3.zero;
-    }
 
-    // Called by Damageable via UnityEvent
-    public void OnDeath()
-    {
-        state = BossState.Dead;
-    }
+        // ---------------------------
+        // DEATH STATE
+        // ---------------------------
+        void HandleDead()
+        {
+            rb.linearVelocity = Vector3.zero;
+        }
 
-    // Sensor calls this when player enters melee zone
-    public void SetMeleeRange(bool val)
-    {
-        inMeleeRange = val;
-    }
+        // Called by Damageable via UnityEvent
+        public void OnDeath()
+        {
+            state = BossState.Dead;
+        }
+
+        // Sensor calls this when player enters melee zone
+        public void SetMeleeRange(bool val)
+        {
+            inMeleeRange = val;
+        }
+    
 }

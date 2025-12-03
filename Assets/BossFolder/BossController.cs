@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 public class BossController : MonoBehaviour
@@ -31,6 +31,21 @@ public class BossController : MonoBehaviour
     public float attackCooldown = 2f;
     private float cooldownTimer = 0f;
 
+    [Header("Sword")]
+    [SerializeField] GameObject sword;        // boss sword object
+    [SerializeField] Animator swordAnimator;  // boss sword animator (optional)
+
+    [Header("Phases")]
+
+    public int phase2Threshold = 50;
+    public bool inPhase2 = false;
+
+    [Header("Projectile Attack")]
+    public GameObject projectilePrefab;
+    public Transform projectileSpawnPoint;
+    public float projectileCooldown = 3f;
+    private float projectileTimer = 0f;
+
     // -----------------------------
     // 2. START (setup)
     // -----------------------------
@@ -48,29 +63,28 @@ public class BossController : MonoBehaviour
             return;
 
         float distance = Vector3.Distance(transform.position, player.position);
-
         cooldownTimer -= Time.deltaTime;
+
+        //  REQUIRED — counts down the projectile cooldown
+        projectileTimer -= Time.deltaTime;
 
         switch (currentState)
         {
-            case BossState.Idle:
-                HandleIdle(distance);
-                break;
+            case BossState.Idle: HandleIdle(distance); break;
+            case BossState.Chase: HandleChase(distance); break;
+            case BossState.Attack: HandleAttack(distance); break;
+            case BossState.Hurt: HandleHurt(); break;
+            case BossState.Dead: break;
+        }
 
-            case BossState.Chase:
-                HandleChase(distance);
-                break;
-
-            case BossState.Attack:
-                HandleAttack(distance);
-                break;
-
-            case BossState.Hurt:
-                HandleHurt();
-                break;
-
-            case BossState.Dead:
-                break;
+        // Phase 2 projectile logic
+        if (inPhase2)
+        {
+            if (projectileTimer <= 0f)
+            {
+                ShootProjectile();
+                projectileTimer = projectileCooldown;
+            }
         }
     }
 
@@ -131,20 +145,61 @@ public class BossController : MonoBehaviour
             cooldownTimer = attackCooldown;
         }
     }
+    void ShootProjectile()
+    {
+        if (projectilePrefab == null || projectileSpawnPoint == null)
+        {
+            Debug.LogWarning("Projectile prefab or spawn point not assigned!");
+            return;
+        }
+
+        // Make projectile
+        GameObject p = Instantiate(projectilePrefab, projectileSpawnPoint.position, projectileSpawnPoint.rotation);
+
+        Debug.Log("Boss shoots a projectile!");
+
+    }
 
     IEnumerator DoAttackTiming()
     {
-        //1. Wind-up (optional)
+        // 1. Wind-up before attack
         yield return new WaitForSeconds(0.2f);
 
-        //2. Enable HItbox
-        bossHitbox.EnableHitbox();
+        // 2. Turn sword on and play swing animation
+        if (sword != null)
+        {
+            sword.SetActive(true);
 
-        //3. Active attack window
-        yield return new WaitForSeconds(0.3f);
+            Animator anim = swordAnimator != null
+                ? swordAnimator
+                : sword.GetComponent<Animator>();
 
-        //4.Disable Hitbox
-        bossHitbox.DisableHitbox();
+            if (anim != null)
+            {
+                anim.SetTrigger("swing");
+            }
+        }
+
+        // 3. Enable hitbox so it can actually do damage
+        if (bossHitbox != null)
+        {
+            bossHitbox.EnableHitbox();
+        }
+
+        // 4. Attack is “active” for a short window
+        yield return new WaitForSeconds(0.25f);
+
+        // 5. Turn hitbox off
+        if (bossHitbox != null)
+        {
+            bossHitbox.DisableHitbox();
+        }
+
+        // 6. Hide sword again
+        if (sword != null)
+        {
+            sword.SetActive(false);
+        }
     }
 
     public void TakeDamage(int amount)
@@ -155,6 +210,11 @@ public class BossController : MonoBehaviour
 
         if (currentHealth <= 0)
             Die();
+        if(!inPhase2 && currentHealth <= phase2Threshold)
+        {
+            inPhase2 = true;
+            Debug.Log("Boss has entered phase 2!");
+        }
     }
 
     void Die()
