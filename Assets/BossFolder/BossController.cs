@@ -46,6 +46,12 @@ public class BossController : MonoBehaviour
     public float projectileCooldown = 3f;
     private float projectileTimer = 0f;
 
+    [Header("Hurt Reaction")]
+    public float knockbackForce = 8f;
+    public float stunDuration = 0.3f;
+
+    private bool isStunned = false;
+
     // -----------------------------
     // 2. START (setup)
     // -----------------------------
@@ -119,7 +125,8 @@ public class BossController : MonoBehaviour
 
     void HandleHurt()
     {
-        currentState = BossState.Chase;
+        if (!isStunned)
+            currentState = BossState.Chase;
     }
 
     // -----------------------------
@@ -215,9 +222,30 @@ public class BossController : MonoBehaviour
             inPhase2 = true;
             Debug.Log("Boss has entered phase 2!");
         }
+        // Apply stun + knockback
+        StartCoroutine(DoKnockbackAndStun());
+        IEnumerator DoKnockbackAndStun()
+        {
+            isStunned = true;
+            currentState = BossState.Hurt;
+
+            // Knockback direction = away from player
+            Vector3 direction = (transform.position - player.position).normalized;
+            direction.y = 0;
+
+            float timer = 0f;
+            while (timer < stunDuration)
+            {
+                transform.position += direction * knockbackForce * Time.deltaTime;
+                timer += Time.deltaTime;
+                yield return null;
+            }
+
+            isStunned = false;
+        }
     }
 
-    void Die()
+    public void Die()
     {
         Debug.Log("Boss has been defeated!");
         currentState = BossState.Dead;
