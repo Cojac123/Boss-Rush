@@ -2,21 +2,34 @@ using UnityEngine;
 
 public class BossHealthUI : MonoBehaviour
 {
-    public Damageable bossDamageable; // Assign BossModel
-    public Bar healthBar;             // Assign Bar script
+    public Damageable bossDamageable; // Drag BossModel here
+    public Bar healthBar;             // Drag your Bar script object here
+
+    int maxHP = 0;
 
     void Start()
     {
-        if (bossDamageable != null)
+        if (bossDamageable == null || healthBar == null)
         {
-            // Listen for HP changes
-            bossDamageable.OnHealthChanged.AddListener(UpdateBar);
+            Debug.LogError("BossHealthUI missing references!");
+            return;
         }
+
+        // Listen for initial HP setup
+        bossDamageable.OnInitialize.AddListener(InitializeBar);
+
+        // Listen for HP changes
+        bossDamageable.OnHealthChanged.AddListener(UpdateBar);
     }
 
-    void UpdateBar(int current, int max)
+    void InitializeBar(int startingMaxHP)
     {
-        float pct = (float)current / max;
-        healthBar.SetBar(pct);
+        maxHP = startingMaxHP;
+        healthBar.SetMax(maxHP);   // This calls Bar.SetMax()
+    }
+
+    void UpdateBar(int damageTaken, int newCurrentHP)
+    {
+        healthBar.UpdateBar(damageTaken, newCurrentHP);
     }
 }

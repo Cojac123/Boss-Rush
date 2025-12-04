@@ -3088,6 +3088,7 @@ GameObject:
   - component: {fileID: 1747053148}
   - component: {fileID: 1747053147}
   - component: {fileID: 1747053146}
+  - component: {fileID: 1747053149}
   m_Layer: 5
   m_Name: Boss Health Display
   m_TagString: Untagged
@@ -3169,6 +3170,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1747053144}
   m_CullTransparentMesh: 1
+--- !u!114 &1747053149
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1747053144}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 590979d5c272fc24ab66117c6e9d94f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bossDamageable: {fileID: 1179423426}
+  healthBar: {fileID: 1747053146}
 --- !u!1 &1778506578
 GameObject:
   m_ObjectHideFlags: 0
