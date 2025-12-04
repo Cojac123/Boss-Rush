@@ -2,15 +2,21 @@ using UnityEngine;
 
 public class BossHealthUI : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    public Damageable bossDamageable; // Assign BossModel
+    public Bar healthBar;             // Assign Bar script
+
     void Start()
     {
-        
+        if (bossDamageable != null)
+        {
+            // Listen for HP changes
+            bossDamageable.OnHealthChanged.AddListener(UpdateBar);
+        }
     }
 
-    // Update is called once per frame
-    void Update()
+    void UpdateBar(int current, int max)
     {
-        
+        float pct = (float)current / max;
+        healthBar.SetBar(pct);
     }
 }
