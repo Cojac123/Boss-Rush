@@ -3,9 +3,6 @@ using UnityEngine;
 
 public class BossController : MonoBehaviour
 {
-    // -----------------------------
-    // VARIABLES
-    // -----------------------------
     public enum BossState { Idle, Chase, Attack, Hurt, Dead }
     public BossDamageHitbox bossHitbox;
 
@@ -34,13 +31,13 @@ public class BossController : MonoBehaviour
     private float projectileTimer = 0f;
 
     [Header("Ultimate Attack")]
-    public float ultimateCooldown = 25f;      // how often the ult is allowed
-    private float ultimateTimer = 0f;         // counts down every frame
-    public GameObject shockwavePrefab;        // prefab for the shockwave
-    public Transform shockwaveSpawnPoint;     // where the wave starts
-    public float ultimateTelegraphTime = 1f;  // boss charges glow time
-    private bool isDoingUltimate = false;     // prevents overlapping attacks
-    
+    public float ultimateCooldown = 25f;
+    private float ultimateTimer = 0f;
+    public GameObject shockwavePrefab;
+    public Transform shockwaveSpawnPoint;
+    public float ultimateTelegraphTime = 1f;
+    private bool isDoingUltimate = false;
+
     [Header("Phases")]
     public int phase2Threshold = 50;
     public bool inPhase2 = false;
@@ -52,18 +49,16 @@ public class BossController : MonoBehaviour
     public float stunDuration = 0.3f;
     private bool isStunned = false;
 
+    private GameManager gm;
 
-    // -----------------------------
-    // START
-    // -----------------------------
     void Start()
     {
         currentHealth = maxHealth;
+        ultimateTimer = ultimateCooldown;
+
+        gm = FindObjectOfType<GameManager>();
     }
 
-    // -----------------------------
-    // UPDATE
-    // -----------------------------
     void Update()
     {
         if (player == null)
@@ -73,40 +68,27 @@ public class BossController : MonoBehaviour
         cooldownTimer -= Time.deltaTime;
         projectileTimer -= Time.deltaTime;
 
-        // -----------------------------
-        // PHASE 3 — ALWAYS OVERRIDES
-        // -----------------------------
         if (inPhase3)
         {
             HandlePhase3Behavior(distance);
             return;
         }
 
-        // -----------------------------
-        // PHASE 2 — RANGED ONLY
-        // -----------------------------
         if (inPhase2)
         {
             HandlePhase2Behavior(distance);
             return;
         }
 
-        // -----------------------------
-        // PHASE 1 — NORMAL FSM
-        // -----------------------------
         switch (currentState)
         {
             case BossState.Idle: HandleIdle(distance); break;
             case BossState.Chase: HandleChase(distance); break;
             case BossState.Attack: HandleAttack(distance); break;
             case BossState.Hurt: HandleHurt(); break;
-            case BossState.Dead: break;
         }
     }
 
-    // -----------------------------
-    // PHASE 1 FUNCTIONS
-    // -----------------------------
     void HandleIdle(float distance)
     {
         if (distance < 10f)
@@ -135,7 +117,7 @@ public class BossController : MonoBehaviour
     }
 
     // -----------------------------
-    // PHASE 2 — RANGED MOVEMENT
+    // PHASE 2
     // -----------------------------
     void HandlePhase2Behavior(float distance)
     {
@@ -163,28 +145,16 @@ public class BossController : MonoBehaviour
     // -----------------------------
     void HandlePhase3Behavior(float distance)
     {
-        if (ultimateTimer > 0f)
-            ultimateTimer -= Time.deltaTime;
-
         transform.LookAt(player.position);
-
-        if (!isDoingUltimate && ultimateTimer <= 0f && distance > 6f)
-        {
-            StartCoroutine(DoUltimateAttack());
-            ultimateTimer = ultimateCooldown;
-            return; // stop normal Phase 3 actions while ulting
-        }
-
         ultimateTimer -= Time.deltaTime;
 
         if (!isDoingUltimate && ultimateTimer <= 0f)
         {
-            StartCoroutine(PerformUltimate());
-            ultimateTimer = ultimateTimer;
-            return;  // stop other actions during ultimate
+            StartCoroutine(DoUltimateAttack());
+            ultimateTimer = ultimateCooldown;
+            return;
         }
 
-        // Ultimate rapid-fire
         if (projectileTimer <= 0f)
         {
             ShootProjectile();
@@ -192,91 +162,51 @@ public class BossController : MonoBehaviour
             projectileTimer = projectileCooldown * 0.4f;
         }
 
-        // Melee if close
         if (distance < attackRange + 1f)
             AttemptAttack();
 
-        // Aggressive chase at distance
         if (distance > 5f)
         {
             Vector3 toward = (player.position - transform.position).normalized;
             toward.y = 0;
             transform.position += toward * (moveSpeed * 2f) * Time.deltaTime;
         }
-        // ⭐ ULTIMATE ATTACK FUNCTION ⭐
-        IEnumerator DoUltimateAttack()
-        {
-            isDoingUltimate = true;
-
-            // 1. TELEGRAPH
-            Debug.Log("Boss begins ULTIMATE telegraph!");
-            yield return new WaitForSeconds(ultimateTelegraphTime);
-
-            // 2. BIG SLASH
-            if (sword != null)
-            {
-                sword.SetActive(true);
-                Animator anim = swordAnimator != null ? swordAnimator : sword.GetComponent<Animator>();
-                if (anim != null) anim.SetTrigger("swing");
-            }
-
-            if (bossHitbox != null)
-            {
-                bossHitbox.damageAmount = 40;
-                bossHitbox.EnableHitbox();
-            }
-
-            yield return new WaitForSeconds(0.3f);
-
-            if (bossHitbox != null) bossHitbox.DisableHitbox();
-            if (sword != null) sword.SetActive(false);
-
-            // 3. SHOCKWAVE
-            if (shockwavePrefab != null && shockwaveSpawnPoint != null)
-            {
-                Instantiate(shockwavePrefab, shockwaveSpawnPoint.position, shockwaveSpawnPoint.rotation);
-                Debug.Log("Shockwave released!");
-            }
-
-            // 4. Post-Ult Pause
-            yield return new WaitForSeconds(0.5f);
-
-            isDoingUltimate = false;
-        }
-
     }
 
     // -----------------------------
-    // ACTIONS
+    // ⭐ ULTIMATE ATTACK ⭐
     // -----------------------------
-    IEnumerator PerformUltimate()
+    IEnumerator DoUltimateAttack()
     {
         isDoingUltimate = true;
 
-        // 1. Stop all movement
-        currentState = BossState.Hurt;
-
-        // 2. Telegraph (glow, shake, sound)
         yield return new WaitForSeconds(ultimateTelegraphTime);
 
-        // 3. Play sword swing animation
         if (sword != null)
         {
             sword.SetActive(true);
             Animator anim = swordAnimator != null ? swordAnimator : sword.GetComponent<Animator>();
-            if (anim) anim.SetTrigger("swing");
+            if (anim != null) anim.SetTrigger("swing");
         }
 
-        // 4. Spawn the shockwave
+        if (bossHitbox != null)
+        {
+            bossHitbox.damageAmount = 40;
+            bossHitbox.EnableHitbox();
+        }
+
+        yield return new WaitForSeconds(0.3f);
+
+        if (bossHitbox != null) bossHitbox.DisableHitbox();
+        if (sword != null) sword.SetActive(false);
+
         if (shockwavePrefab != null && shockwaveSpawnPoint != null)
         {
-            Instantiate(shockwavePrefab,
-                        shockwaveSpawnPoint.position,
-                        shockwaveSpawnPoint.rotation);
+            Instantiate(shockwavePrefab, shockwaveSpawnPoint.position, shockwaveSpawnPoint.rotation);
         }
 
-        // 5. Small recovery time
         yield return new WaitForSeconds(0.5f);
+
         isDoingUltimate = false;
     }
 
@@ -315,7 +245,7 @@ public class BossController : MonoBehaviour
         {
             sword.SetActive(true);
             Animator anim = swordAnimator != null ? swordAnimator : sword.GetComponent<Animator>();
-            if (anim) anim.SetTrigger("swing");
+            if (anim != null) anim.SetTrigger("swing");
         }
 
         if (bossHitbox != null)
@@ -330,14 +260,10 @@ public class BossController : MonoBehaviour
             sword.SetActive(false);
     }
 
-    // -----------------------------
-    // DAMAGE + PHASE SWITCH
-    // -----------------------------
     public void TakeDamage(int amount)
     {
         currentHealth -= amount;
 
-        // Phase checks
         if (!inPhase3 && currentHealth <= phase3Threshold)
             inPhase3 = true;
         else if (!inPhase2 && currentHealth <= phase2Threshold)
@@ -349,7 +275,6 @@ public class BossController : MonoBehaviour
             return;
         }
 
-        // Apply knockback + stun
         StartCoroutine(DoKnockbackAndStun());
     }
 
@@ -375,6 +300,9 @@ public class BossController : MonoBehaviour
     public void Die()
     {
         currentState = BossState.Dead;
+        //Tell game manager to go to next level
+        FindObjectOfType<GameManager>().GoToNextLevel();
+        gm.GoToNextLevel();
         Destroy(gameObject);
     }
 }
