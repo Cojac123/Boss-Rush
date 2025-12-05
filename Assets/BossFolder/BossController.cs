@@ -175,6 +175,14 @@ public class BossController : MonoBehaviour
             return; // stop normal Phase 3 actions while ulting
         }
 
+        ultimateTimer -= Time.deltaTime;
+
+        if (!isDoingUltimate && ultimateTimer <= 0f)
+        {
+            StartCoroutine(PerformUltimate());
+            ultimateTimer = ultimateTimer;
+            return;  // stop other actions during ultimate
+        }
 
         // Ultimate rapid-fire
         if (projectileTimer <= 0f)
@@ -241,6 +249,37 @@ public class BossController : MonoBehaviour
     // -----------------------------
     // ACTIONS
     // -----------------------------
+    IEnumerator PerformUltimate()
+    {
+        isDoingUltimate = true;
+
+        // 1. Stop all movement
+        currentState = BossState.Hurt;
+
+        // 2. Telegraph (glow, shake, sound)
+        yield return new WaitForSeconds(ultimateTelegraphTime);
+
+        // 3. Play sword swing animation
+        if (sword != null)
+        {
+            sword.SetActive(true);
+            Animator anim = swordAnimator != null ? swordAnimator : sword.GetComponent<Animator>();
+            if (anim) anim.SetTrigger("swing");
+        }
+
+        // 4. Spawn the shockwave
+        if (shockwavePrefab != null && shockwaveSpawnPoint != null)
+        {
+            Instantiate(shockwavePrefab,
+                        shockwaveSpawnPoint.position,
+                        shockwaveSpawnPoint.rotation);
+        }
+
+        // 5. Small recovery time
+        yield return new WaitForSeconds(0.5f);
+        isDoingUltimate = false;
+    }
+
     void MoveTowardsPlayer()
     {
         Vector3 direction = (player.position - transform.position).normalized;
