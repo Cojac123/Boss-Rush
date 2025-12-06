@@ -3,307 +3,309 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Events;
-
-public static class StaticInputManager
+namespace CoryBoss
 {
-    public static PlayerInputActions input { get; private set; } = new PlayerInputActions();
-}
-
-public class PlayerLogic : MonoBehaviour
-{
-    // values set in inspector
-    [SerializeField] float moveSpeed;
-    [SerializeField] float jumpSpeed;
-    [SerializeField] float gravity;
-    [SerializeField] int maxEnergy;
-    [SerializeField] int shootCost;
-    public BossController boss;
-
-    // references set in inspector
-    [SerializeField] GameObject sword;
-    [SerializeField] GameObject projectile;
-    [SerializeField] Animator animator;
-    [SerializeField] LayerMask ground;
-
-    [SerializeField] AudioClip jumpSound;
-    [SerializeField] AudioClip swordSwingSound;
-    [SerializeField] AudioClip dashSound;
-    [SerializeField] AudioClip shootSound;
-
-    // events
-    public UnityEvent OnStartDash;
-    public UnityEvent OnEndDash;
-    public UnityEvent<int> OnInitializeEnergy;
-    public UnityEvent<int, int> OnEnergyChanged; // change amount, new total amount
-
-    // private references
-    CharacterController controller;
-
-    // movement variables
-    Vector3 moveVelocity;
-    bool grounded = false;
-    bool canControl = true;
-
-    // combat variables
-    bool aiming = false;
-    float timeSinceLastMelee = 0;
-    bool usingMouse = false;
-    bool dead = false;
-
-    int currentEnergy;
-
-    // Start is called before the first frame update
-    void Start()
+    public static class StaticInputManager
     {
-        controller = GetComponent<CharacterController>();
-        OnInitializeEnergy?.Invoke(maxEnergy);
-        ChangeEnergy(maxEnergy);
+        public static PlayerInputActions input { get; private set; } = new PlayerInputActions();
     }
 
-    private void OnEnable()
+    public class PlayerLogic : MonoBehaviour
     {
-        StaticInputManager.input.Player.Jump.performed += Jump;
-        StaticInputManager.input.Player.Melee.performed += Melee;
-        StaticInputManager.input.Player.Dodge.performed += Dodge;
-        StaticInputManager.input.Player.Aim.started += ctx => { aiming = true; usingMouse = ctx.control.parent.name == "Mouse" ? true : false; };
-        StaticInputManager.input.Player.Aim.canceled += ctx => { aiming = false; usingMouse = ctx.control.parent.name == "Mouse" ? true : false; };
-        StaticInputManager.input.Player.Shoot.performed += Shoot;
+        // values set in inspector
+        [SerializeField] float moveSpeed;
+        [SerializeField] float jumpSpeed;
+        [SerializeField] float gravity;
+        [SerializeField] int maxEnergy;
+        [SerializeField] int shootCost;
+        public BossController boss;
 
-        StaticInputManager.input.Player.Enable();
-    }
+        // references set in inspector
+        [SerializeField] GameObject sword;
+        [SerializeField] GameObject projectile;
+        [SerializeField] Animator animator;
+        [SerializeField] LayerMask ground;
 
-    private void OnDisable()
-    {
-        StaticInputManager.input.Player.Jump.performed -= Jump;
-        StaticInputManager.input.Player.Melee.performed -= Melee;
-        StaticInputManager.input.Player.Dodge.performed -= Dodge;
-        StaticInputManager.input.Player.Shoot.performed -= Shoot;
-        //StaticInputManager.input.Player.Aim.Dispose(); // ??
+        [SerializeField] AudioClip jumpSound;
+        [SerializeField] AudioClip swordSwingSound;
+        [SerializeField] AudioClip dashSound;
+        [SerializeField] AudioClip shootSound;
 
-        StaticInputManager.input.Player.Disable();
-    }
+        // events
+        public UnityEvent OnStartDash;
+        public UnityEvent OnEndDash;
+        public UnityEvent<int> OnInitializeEnergy;
+        public UnityEvent<int, int> OnEnergyChanged; // change amount, new total amount
 
-    // Update is called once per frame
-    void Update()
-    {
-        if (Time.timeScale == 0) return;
+        // private references
+        CharacterController controller;
 
-        if (dead)
-            canControl = false;
+        // movement variables
+        Vector3 moveVelocity;
+        bool grounded = false;
+        bool canControl = true;
 
-        timeSinceLastMelee += Time.deltaTime;
+        // combat variables
+        bool aiming = false;
+        float timeSinceLastMelee = 0;
+        bool usingMouse = false;
+        bool dead = false;
 
-        bool prevGrounded = grounded;
-        grounded = controller.isGrounded;
+        int currentEnergy;
 
-        if(prevGrounded != grounded && grounded)
+        // Start is called before the first frame update
+        void Start()
         {
-            // landed
+            controller = GetComponent<CharacterController>();
+            OnInitializeEnergy?.Invoke(maxEnergy);
+            ChangeEnergy(maxEnergy);
         }
 
-        if(grounded && moveVelocity.y < 0) // stop falling when on ground
+        private void OnEnable()
         {
-            moveVelocity.y = 0;
+            StaticInputManager.input.Player.Jump.performed += Jump;
+            StaticInputManager.input.Player.Melee.performed += Melee;
+            StaticInputManager.input.Player.Dodge.performed += Dodge;
+            StaticInputManager.input.Player.Aim.started += ctx => { aiming = true; usingMouse = ctx.control.parent.name == "Mouse" ? true : false; };
+            StaticInputManager.input.Player.Aim.canceled += ctx => { aiming = false; usingMouse = ctx.control.parent.name == "Mouse" ? true : false; };
+            StaticInputManager.input.Player.Shoot.performed += Shoot;
+
+            StaticInputManager.input.Player.Enable();
         }
 
-        if(canControl)
+        private void OnDisable()
         {
-            // get movement input and make it camera-relative
-            Vector2 moveInput = StaticInputManager.input.Player.Move.ReadValue<Vector2>();
-            Vector3 adjustedInput = GetCameraRelativeInput(moveInput);
+            StaticInputManager.input.Player.Jump.performed -= Jump;
+            StaticInputManager.input.Player.Melee.performed -= Melee;
+            StaticInputManager.input.Player.Dodge.performed -= Dodge;
+            StaticInputManager.input.Player.Shoot.performed -= Shoot;
+            //StaticInputManager.input.Player.Aim.Dispose(); // ??
 
-            // face movement direction
-            if (adjustedInput != Vector3.zero && !aiming)
-                transform.forward = adjustedInput.normalized;
+            StaticInputManager.input.Player.Disable();
+        }
 
-            // controls change if we're aiming
-            if (aiming)
+        // Update is called once per frame
+        void Update()
+        {
+            if (Time.timeScale == 0) return;
+
+            if (dead)
+                canControl = false;
+
+            timeSinceLastMelee += Time.deltaTime;
+
+            bool prevGrounded = grounded;
+            grounded = controller.isGrounded;
+
+            if (prevGrounded != grounded && grounded)
             {
-                moveVelocity = new Vector3(0, moveVelocity.y, 0);
+                // landed
+            }
 
-                // controls change further if we're using mouse/keyboard or controller
-                if(usingMouse)
+            if (grounded && moveVelocity.y < 0) // stop falling when on ground
+            {
+                moveVelocity.y = 0;
+            }
+
+            if (canControl)
+            {
+                // get movement input and make it camera-relative
+                Vector2 moveInput = StaticInputManager.input.Player.Move.ReadValue<Vector2>();
+                Vector3 adjustedInput = GetCameraRelativeInput(moveInput);
+
+                // face movement direction
+                if (adjustedInput != Vector3.zero && !aiming)
+                    transform.forward = adjustedInput.normalized;
+
+                // controls change if we're aiming
+                if (aiming)
                 {
-                    // if using mouse, rotate to face mouse position
+                    moveVelocity = new Vector3(0, moveVelocity.y, 0);
 
-                    Vector2 mousePos = Mouse.current.position.value;
-
-                    Ray mouseRay = Camera.main.ScreenPointToRay(mousePos);
-
-                    if (Physics.Raycast(mouseRay, out RaycastHit hit, 1000, ground))
+                    // controls change further if we're using mouse/keyboard or controller
+                    if (usingMouse)
                     {
-                        var aimDirection = (hit.point - transform.position).normalized;
-                        aimDirection.y = 0;
-                        transform.forward = aimDirection;
+                        // if using mouse, rotate to face mouse position
+
+                        Vector2 mousePos = Mouse.current.position.value;
+
+                        Ray mouseRay = Camera.main.ScreenPointToRay(mousePos);
+
+                        if (Physics.Raycast(mouseRay, out RaycastHit hit, 1000, ground))
+                        {
+                            var aimDirection = (hit.point - transform.position).normalized;
+                            aimDirection.y = 0;
+                            transform.forward = aimDirection;
+                        }
                     }
+
+                    else
+                    {
+                        // if using controller, face stick direction
+
+                        if (adjustedInput != Vector3.zero)
+                            transform.forward = adjustedInput.normalized;
+                    }
+
                 }
 
                 else
                 {
-                    // if using controller, face stick direction
-
-                    if (adjustedInput != Vector3.zero)
-                        transform.forward = adjustedInput.normalized;
+                    // if not aiming, set our target movement velocity based on input
+                    moveVelocity = new Vector3(adjustedInput.x * moveSpeed, moveVelocity.y, adjustedInput.z * moveSpeed);
                 }
-
             }
 
-            else
+            // add gravity because character controller doesn't do it automatically
+            moveVelocity.y += gravity * Time.deltaTime;
+
+            controller.Move((moveVelocity) * Time.deltaTime);
+
+            // get ground velocity to use it in Animator
+            Vector3 walkVelocity = moveVelocity;
+            walkVelocity.y = 0;
+            animator.SetFloat("speed", Mathf.Abs(walkVelocity.magnitude));
+
+
+            // Temp: press H to damahe boss
+            if (UnityEngine.InputSystem.Keyboard.current.hKey.wasPressedThisFrame)
             {
-                // if not aiming, set our target movement velocity based on input
-                moveVelocity = new Vector3(adjustedInput.x * moveSpeed, moveVelocity.y, adjustedInput.z * moveSpeed);
+                if (boss != null)
+                {
+                    boss.TakeDamage(10);
+                }
             }
         }
 
-        // add gravity because character controller doesn't do it automatically
-        moveVelocity.y += gravity * Time.deltaTime;
-
-        controller.Move((moveVelocity) * Time.deltaTime);
-
-        // get ground velocity to use it in Animator
-        Vector3 walkVelocity = moveVelocity;
-        walkVelocity.y = 0;
-        animator.SetFloat("speed", Mathf.Abs(walkVelocity.magnitude));
-       
-        
-        // Temp: press H to damahe boss
-        if (UnityEngine.InputSystem.Keyboard.current.hKey.wasPressedThisFrame)
+        void Jump(InputAction.CallbackContext ctx)
         {
-            if(boss != null)
-            {
-                boss.TakeDamage(10);
-            }
+            if (!canControl)
+                return;
+
+            if (!grounded)
+                return;
+
+            moveVelocity.y = jumpSpeed;
+
+            SoundEffectsManager.instance.PlayAudioClip(jumpSound, true);
         }
-    }
 
-    void Jump(InputAction.CallbackContext ctx)
-    {
-        if (!canControl)
-            return;
+        void Melee(InputAction.CallbackContext ctx)
+        {
+            if (!canControl)
+                return;
 
-        if (!grounded)
-            return;
+            if (!grounded)
+                return;
 
-        moveVelocity.y = jumpSpeed;
+            if (timeSinceLastMelee < 0.25f)
+                return;
 
-        SoundEffectsManager.instance.PlayAudioClip(jumpSound, true);
-    }
+            if (aiming)
+                return;
 
-    void Melee(InputAction.CallbackContext ctx)
-    {
-        if (!canControl)
-            return;
+            StartCoroutine(HandleMelee());
+        }
 
-        if (!grounded)
-            return;
+        IEnumerator HandleMelee()
+        {
+            timeSinceLastMelee = 0;
+            sword.SetActive(true);
+            sword.GetComponent<Animator>().SetTrigger("swing");
+            SoundEffectsManager.instance.PlayAudioClip(swordSwingSound, true);
+            yield return new WaitForSeconds(0.25f);
+            sword.SetActive(false);
+        }
 
-        if (timeSinceLastMelee < 0.25f)
-            return;
+        void Dodge(InputAction.CallbackContext ctx)
+        {
+            if (!canControl)
+                return;
 
-        if (aiming)
-            return;
+            StartCoroutine(HandleDash());
+        }
 
-        StartCoroutine(HandleMelee());
-    }
+        IEnumerator HandleDash()
+        {
+            OnStartDash?.Invoke();
+            SoundEffectsManager.instance.PlayAudioClip(dashSound, true);
+            canControl = false;
+            moveVelocity = transform.forward * 20;
+            yield return new WaitForSeconds(0.25f);
+            moveVelocity = Vector3.zero;
+            canControl = true;
+            OnEndDash?.Invoke();
+        }
 
-    IEnumerator HandleMelee()
-    {
-        timeSinceLastMelee = 0;
-        sword.SetActive(true);
-        sword.GetComponent<Animator>().SetTrigger("swing");
-        SoundEffectsManager.instance.PlayAudioClip(swordSwingSound, true);
-        yield return new WaitForSeconds(0.25f);
-        sword.SetActive(false);
-    }
+        public void Shoot(InputAction.CallbackContext ctx)
+        {
+            if (!canControl)
+                return;
 
-    void Dodge(InputAction.CallbackContext ctx)
-    {
-        if (!canControl)
-            return;
+            if (!aiming)
+                return;
 
-        StartCoroutine(HandleDash());
-    }
+            if (currentEnergy < 20)
+                return;
 
-    IEnumerator HandleDash()
-    {
-        OnStartDash?.Invoke();
-        SoundEffectsManager.instance.PlayAudioClip(dashSound, true);
-        canControl = false;
-        moveVelocity = transform.forward * 20;
-        yield return new WaitForSeconds(0.25f);
-        moveVelocity = Vector3.zero;
-        canControl = true;
-        OnEndDash?.Invoke();
-    }
+            GameObject p = Instantiate(projectile, transform.position, Quaternion.identity);
+            p.transform.forward = transform.forward;
 
-    public void Shoot(InputAction.CallbackContext ctx)
-    {
-        if (!canControl)
-            return;
+            ChangeEnergy(-1 * shootCost);
 
-        if (!aiming)
-            return;
+            SoundEffectsManager.instance.PlayAudioClip(shootSound, true);
+        }
 
-        if (currentEnergy < 20)
-            return;
+        public void ChangeEnergy(int amount)
+        {
+            currentEnergy += amount;
 
-        GameObject p = Instantiate(projectile, transform.position, Quaternion.identity);
-        p.transform.forward = transform.forward;
+            if (currentEnergy > maxEnergy)
+                currentEnergy = maxEnergy;
 
-        ChangeEnergy(-1 * shootCost);
+            if (currentEnergy <= 0)
+                currentEnergy = 0;
 
-        SoundEffectsManager.instance.PlayAudioClip(shootSound, true);
-    }
+            OnEnergyChanged?.Invoke(amount, currentEnergy);
+        }
 
-    public void ChangeEnergy(int amount)
-    {
-        currentEnergy += amount;
+        Vector3 GetCameraRelativeInput(Vector2 input)
+        {
+            Transform cam = Camera.main.transform;
 
-        if (currentEnergy > maxEnergy)
-            currentEnergy = maxEnergy;
+            Vector3 camRight = cam.right;
+            camRight.y = 0;
+            camRight.Normalize();
+            Vector3 camForward = cam.forward;
+            camForward.y = 0;
+            camForward.Normalize();
 
-        if (currentEnergy <= 0)
-            currentEnergy = 0;
+            return input.x * camRight + input.y * camForward;
+        }
 
-        OnEnergyChanged?.Invoke(amount, currentEnergy);
-    }
+        public void ApplyKnockback(Damage damage)
+        {
+            //Debug.Log("apply knockback");
+            StartCoroutine(HandleKnockback(damage.direction * damage.knockbackForce));
+        }
 
-    Vector3 GetCameraRelativeInput(Vector2 input)
-    {
-        Transform cam = Camera.main.transform;
+        IEnumerator HandleKnockback(Vector3 knockback)
+        {
+            //Debug.Log("handling knockback " + knockback.magnitude) ;
+            moveVelocity = knockback;
+            canControl = false;
+            yield return new WaitForSeconds(0.25f);
+            canControl = true;
+            moveVelocity = Vector3.zero;
+            //Debug.Log("stop knockback");
+        }
 
-        Vector3 camRight = cam.right;
-        camRight.y = 0;
-        camRight.Normalize();
-        Vector3 camForward = cam.forward;
-        camForward.y = 0;
-        camForward.Normalize();
-
-        return input.x * camRight + input.y * camForward;
-    }
-
-    public void ApplyKnockback(Damage damage)
-    {
-        //Debug.Log("apply knockback");
-        StartCoroutine( HandleKnockback(damage.direction * damage.knockbackForce));
-    }
-
-    IEnumerator HandleKnockback(Vector3 knockback)
-    {
-        //Debug.Log("handling knockback " + knockback.magnitude) ;
-        moveVelocity = knockback;
-        canControl = false;
-        yield return new WaitForSeconds(0.25f);
-        canControl = true;
-        moveVelocity = Vector3.zero;
-        //Debug.Log("stop knockback");
-    }
-
-    public void Death()
-    {
-        dead = true;
-        canControl = false;
-        moveVelocity = Vector3.zero;
-        GameManager.instance.RestartLevel();
+        public void Death()
+        {
+            dead = true;
+            canControl = false;
+            moveVelocity = Vector3.zero;
+            GameManager.instance.RestartLevel();
+        }
     }
 }

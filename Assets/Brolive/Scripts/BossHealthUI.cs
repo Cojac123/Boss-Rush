@@ -1,21 +1,23 @@
 using UnityEngine;
-
-public class BossHealthUI : MonoBehaviour
+namespace CoryBoss
 {
-    public BossController boss;   // drag Boss root
-    public Bar healthBar;         // drag UI Bar object
-
-    void Start()
+    public class BossHealthUI : MonoBehaviour
     {
-        // Set bar maximum ONCE
-        healthBar.SetMax(boss.maxHealth);
+        public BossController boss;   // drag Boss root
+        public Bar healthBar;         // drag UI Bar object
 
-        // Subscribe to event
-        boss.OnBossHealthChanged += UpdateBar;
-    }
+        void Start()
+        {
+            // Set bar maximum ONCE
+            healthBar.SetMax(boss.maxHealth);
 
-    void UpdateBar(int current, int max)
-    {
-        healthBar.UpdateBar(0, current);
+            // Subscribe to event
+            boss.OnBossHealthChanged += UpdateBar;
+        }
+
+        void UpdateBar(int current, int max)
+        {
+            healthBar.UpdateBar(0, current);
+        }
     }
 }
