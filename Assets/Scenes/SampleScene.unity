@@ -326,7 +326,7 @@ MonoBehaviour:
   m_ScaleFactor: 1
   m_ReferenceResolution: {x: 1920, y: 1080}
   m_ScreenMatchMode: 0
-  m_MatchWidthOrHeight: 0
+  m_MatchWidthOrHeight: 0.325
   m_PhysicalUnit: 3
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
@@ -3228,7 +3228,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 590979d5c272fc24ab66117c6e9d94f3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  bossDamageable: {fileID: 1179423426}
+  boss: {fileID: 1179423422}
   healthBar: {fileID: 1747053146}
 --- !u!1 &1778506578
 GameObject:

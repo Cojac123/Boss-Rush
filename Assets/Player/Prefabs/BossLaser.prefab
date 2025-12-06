@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 6148328115119955178}
   - component: {fileID: 4360971363081074393}
   - component: {fileID: 2339735996247446356}
-  - component: {fileID: 7662675880251819888}
   - component: {fileID: 4640277890063997022}
   - component: {fileID: 7733387133243672146}
   - component: {fileID: -5910169722746376551}
@@ -140,19 +139,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &7662675880251819888
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9046086528081922757}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a6ea99bbc1069014186df1e6a63bc736, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  speed: 30
 --- !u!114 &4640277890063997022
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -165,14 +151,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 36d91920f1168024cad6f2f46528b94c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  damageAmount: 50
-  knockbackForce: 1
+  damageAmount: 3
+  knockbackForce: 10
   hitEffectPrefab: {fileID: 2717892095994439559, guid: 7f6dafc4f0f90564395b340bbe141b85, type: 3}
   hitSounds: {fileID: 11400000, guid: 49537a2ae8ff13640878c39d6843f2b1, type: 2}
   OnContact:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 7662675880251819888}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: Projectile, Assembly-CSharp
         m_MethodName: DestroyProjectile
         m_Mode: 1
