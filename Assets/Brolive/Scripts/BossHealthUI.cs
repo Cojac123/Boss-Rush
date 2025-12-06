@@ -2,34 +2,20 @@ using UnityEngine;
 
 public class BossHealthUI : MonoBehaviour
 {
-    public Damageable bossDamageable; // Drag BossModel here
-    public Bar healthBar;             // Drag your Bar script object here
-
-    int maxHP = 0;
+    public BossController boss;   // drag Boss root
+    public Bar healthBar;         // drag UI Bar object
 
     void Start()
     {
-        if (bossDamageable == null || healthBar == null)
-        {
-            Debug.LogError("BossHealthUI missing references!");
-            return;
-        }
+        // Set bar maximum ONCE
+        healthBar.SetMax(boss.maxHealth);
 
-        // Listen for initial HP setup
-        bossDamageable.OnInitialize.AddListener(InitializeBar);
-
-        // Listen for HP changes
-        bossDamageable.OnHealthChanged.AddListener(UpdateBar);
+        // Subscribe to event
+        boss.OnBossHealthChanged += UpdateBar;
     }
 
-    void InitializeBar(int startingMaxHP)
+    void UpdateBar(int current, int max)
     {
-        maxHP = startingMaxHP;
-        healthBar.SetMax(maxHP);   // This calls Bar.SetMax()
-    }
-
-    void UpdateBar(int damageTaken, int newCurrentHP)
-    {
-        healthBar.UpdateBar(damageTaken, newCurrentHP);
+        healthBar.UpdateBar(0, current);
     }
 }

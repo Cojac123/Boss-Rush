@@ -5,6 +5,7 @@ public class BossController : MonoBehaviour
 {
     public enum BossState { Idle, Chase, Attack, Hurt, Dead }
     public BossDamageHitbox bossHitbox;
+    public System.Action<int, int> OnBossHealthChanged;
 
     [Header("Stats")]
     public int maxHealth = 100;
@@ -130,16 +131,16 @@ public class BossController : MonoBehaviour
     {
         float desiredRange = 7f;
 
-        //  Don’t run into walls
-        if (IsObstacleAhead())
-        {
-            AvoidObstacle();
-        }
+       
 
         if (distance < desiredRange)
         {
-            Vector3 away = (transform.position - player.position).normalized;
+            Vector3 away = (transform.position - player.position);
+            away.y = 0;   // <-- stop floating
+            away = away.normalized;
+
             transform.position += away * (moveSpeed * 1.5f) * Time.deltaTime;
+
         }
         else
         {
@@ -161,38 +162,35 @@ public class BossController : MonoBehaviour
         transform.LookAt(player.position);
         ultimateTimer -= Time.deltaTime;
 
-        // ✅ Don’t run into walls
-        if (IsObstacleAhead())
-        {
-            AvoidObstacle();
-        }
-
-        // Ultimate loop
+        // ⭐ START ULTIMATE ATTACK
         if (!isDoingUltimate && ultimateTimer <= 0f)
         {
             StartCoroutine(DoUltimateAttack());
             ultimateTimer = ultimateCooldown;
-            return;
+            return; // IMPORTANT: stops phase 3 logic while ulting
         }
 
-        // Rapid-fire projectiles
-        if (projectileTimer <= 0f)
+        // ⭐ ONLY do rapid fire when NOT ulting
+        if (!isDoingUltimate)
         {
-            ShootProjectile();
-            ShootProjectile();
-            projectileTimer = projectileCooldown * 0.4f;
-        }
+            if (projectileTimer <= 0f)
+            {
+                ShootProjectile();
+                ShootProjectile();
+                projectileTimer = projectileCooldown * 0.4f;
+            }
 
-        // Melee if close
-        if (distance < attackRange + 1f)
-            AttemptAttack();
+            // Melee if close
+            if (distance < attackRange + 1f)
+                AttemptAttack();
 
-        // Aggressive chase
-        if (distance > 5f)
-        {
-            Vector3 toward = (player.position - transform.position).normalized;
-            toward.y = 0;
-            transform.position += toward * (moveSpeed * 2f) * Time.deltaTime;
+            // Chase aggressively
+            if (distance > 5f)
+            {
+                Vector3 toward = (player.position - transform.position).normalized;
+                toward.y = 0;
+                transform.position += toward * (moveSpeed * 2f) * Time.deltaTime;
+            }
         }
     }
 
@@ -201,6 +199,8 @@ public class BossController : MonoBehaviour
     // -----------------------------
     IEnumerator DoUltimateAttack()
     {
+        Debug.Log("ULTIMATE ATTACK STARTED!");
+
         isDoingUltimate = true;
 
         // Telegraph
@@ -239,33 +239,7 @@ public class BossController : MonoBehaviour
         isDoingUltimate = false;
     }
 
-    // -----------------------------
-    // WALL AVOIDANCE SYSTEM
-    // -----------------------------
-    bool IsObstacleAhead()
-    {
-        RaycastHit hit;
-
-        // Ray origin slightly above ground so it hits colliders
-        Vector3 origin = transform.position + Vector3.up * 0.5f;
-
-        // 1.5f = distance to check in front of boss
-        if (Physics.Raycast(origin, transform.forward, out hit, 1.5f))
-        {
-            if (hit.collider.CompareTag("Wall"))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    void AvoidObstacle()
-    {
-        // Simple: turn 90 degrees when hitting a wall
-        transform.Rotate(0f, 90f, 0f);
-    }
+   
 
     // -----------------------------
     // ACTIONS
@@ -327,6 +301,9 @@ public class BossController : MonoBehaviour
     {
         currentHealth -= amount;
 
+        // Update UI
+        OnBossHealthChanged?.Invoke(currentHealth, maxHealth);
+
         if (!inPhase3 && currentHealth <= phase3Threshold)
             inPhase3 = true;
         else if (!inPhase2 && currentHealth <= phase2Threshold)
@@ -340,6 +317,7 @@ public class BossController : MonoBehaviour
 
         StartCoroutine(DoKnockbackAndStun());
     }
+
 
     IEnumerator DoKnockbackAndStun()
     {
