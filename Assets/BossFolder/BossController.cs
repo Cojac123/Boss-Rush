@@ -48,6 +48,10 @@ public class BossController : MonoBehaviour
     public float knockbackForce = 8f;
     public float stunDuration = 0.3f;
     private bool isStunned = false;
+    
+    [Header("Laser Ultimate")]
+    public GameObject laserPrefab;
+    public Transform laserSpawnPoint;
 
     private GameManager gm;
 
@@ -89,6 +93,9 @@ public class BossController : MonoBehaviour
         }
     }
 
+    // -----------------------------
+    // PHASE 1
+    // -----------------------------
     void HandleIdle(float distance)
     {
         if (distance < 10f)
@@ -117,11 +124,17 @@ public class BossController : MonoBehaviour
     }
 
     // -----------------------------
-    // PHASE 2
+    // PHASE 2 — RANGED / KEEP DISTANCE
     // -----------------------------
     void HandlePhase2Behavior(float distance)
     {
         float desiredRange = 7f;
+
+        //  Don’t run into walls
+        if (IsObstacleAhead())
+        {
+            AvoidObstacle();
+        }
 
         if (distance < desiredRange)
         {
@@ -148,6 +161,13 @@ public class BossController : MonoBehaviour
         transform.LookAt(player.position);
         ultimateTimer -= Time.deltaTime;
 
+        // ✅ Don’t run into walls
+        if (IsObstacleAhead())
+        {
+            AvoidObstacle();
+        }
+
+        // Ultimate loop
         if (!isDoingUltimate && ultimateTimer <= 0f)
         {
             StartCoroutine(DoUltimateAttack());
@@ -155,6 +175,7 @@ public class BossController : MonoBehaviour
             return;
         }
 
+        // Rapid-fire projectiles
         if (projectileTimer <= 0f)
         {
             ShootProjectile();
@@ -162,9 +183,11 @@ public class BossController : MonoBehaviour
             projectileTimer = projectileCooldown * 0.4f;
         }
 
+        // Melee if close
         if (distance < attackRange + 1f)
             AttemptAttack();
 
+        // Aggressive chase
         if (distance > 5f)
         {
             Vector3 toward = (player.position - transform.position).normalized;
@@ -180,8 +203,10 @@ public class BossController : MonoBehaviour
     {
         isDoingUltimate = true;
 
+        // Telegraph
         yield return new WaitForSeconds(ultimateTelegraphTime);
 
+        // Big sword slash
         if (sword != null)
         {
             sword.SetActive(true);
@@ -200,16 +225,51 @@ public class BossController : MonoBehaviour
         if (bossHitbox != null) bossHitbox.DisableHitbox();
         if (sword != null) sword.SetActive(false);
 
-        if (shockwavePrefab != null && shockwaveSpawnPoint != null)
+        // 3. FIRE THE LASER
+        if (laserPrefab != null && laserSpawnPoint != null)
         {
-            Instantiate(shockwavePrefab, shockwaveSpawnPoint.position, shockwaveSpawnPoint.rotation);
+            Instantiate(laserPrefab, laserSpawnPoint.position, laserSpawnPoint.rotation);
+            Debug.Log("LASER FIRED!");
         }
+
+
 
         yield return new WaitForSeconds(0.5f);
 
         isDoingUltimate = false;
     }
 
+    // -----------------------------
+    // WALL AVOIDANCE SYSTEM
+    // -----------------------------
+    bool IsObstacleAhead()
+    {
+        RaycastHit hit;
+
+        // Ray origin slightly above ground so it hits colliders
+        Vector3 origin = transform.position + Vector3.up * 0.5f;
+
+        // 1.5f = distance to check in front of boss
+        if (Physics.Raycast(origin, transform.forward, out hit, 1.5f))
+        {
+            if (hit.collider.CompareTag("Wall"))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    void AvoidObstacle()
+    {
+        // Simple: turn 90 degrees when hitting a wall
+        transform.Rotate(0f, 90f, 0f);
+    }
+
+    // -----------------------------
+    // ACTIONS
+    // -----------------------------
     void MoveTowardsPlayer()
     {
         Vector3 direction = (player.position - transform.position).normalized;
@@ -260,6 +320,9 @@ public class BossController : MonoBehaviour
             sword.SetActive(false);
     }
 
+    // -----------------------------
+    // DAMAGE + PHASE SWITCH
+    // -----------------------------
     public void TakeDamage(int amount)
     {
         currentHealth -= amount;
@@ -300,8 +363,6 @@ public class BossController : MonoBehaviour
     public void Die()
     {
         currentState = BossState.Dead;
-        //Tell game manager to go to next level
-        FindObjectOfType<GameManager>().GoToNextLevel();
         gm.GoToNextLevel();
         Destroy(gameObject);
     }
